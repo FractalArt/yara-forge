@@ -7,6 +7,7 @@ import datetime
 from pprint import pprint
 import dateparser
 from plyara.utils import rebuild_yara_rule
+import re
 
 
 def write_yara_packages(processed_yara_repos, program_version, yaraqa_commit, YARA_FORGE_CONFIG):
@@ -264,20 +265,18 @@ def write_yara_packages(processed_yara_repos, program_version, yaraqa_commit, YA
                             "in the log file: yara-forge.log when you run it with --debug flag")
 
                 # organize the imports to avoid `duplicate import` errors in yara-x.
-                imports = set()
+                import_set = set()
+                regex_import = re.compile('import ".*"\n')
                 for r in range(len(output_rule_set_strings)):
                     rule = output_rule_set_strings[r]
-                    rule_lines = []
-                    for line in rule.split('\n'):
-                        if line.startswith('import "'):
-                            headers.add(line)
-                        else:
-                            rule_lines.append(line)
-                    output_rule_set_strings[r] = "\n".join(rule_lines)
+                    imports = regex_import.findall(rule)
+                    if len(imports) > 0:
+                        import_set.update(imports)
+                        output_rule_set_strings[r] = regex_import.sub('', rule)
                 
                 # collect all the imports used by the rules at the top of the file
-                if len(imports) > 0:
-                    imports = '\n' + '\n'.join(imports) + '\n\n' 
+                if len(import_set) > 0:
+                    imports = '\n' + ''.join(import_set) + '\n\n' 
                     output_rule_set_strings.insert(0, imports)
 
                 # Prepend the header to the output rule set strings
