@@ -263,6 +263,23 @@ def write_yara_packages(processed_yara_repos, program_version, yaraqa_commit, YA
                 logging.log(logging.INFO, "You can find more information about skipped files " \
                             "in the log file: yara-forge.log when you run it with --debug flag")
 
+                # organize the imports to avoid `duplicate import` errors in yara-x.
+                imports = set()
+                for r in range(len(output_rule_set_strings)):
+                    rule = output_rule_set_strings[r]
+                    rule_lines = []
+                    for line in rule.split('\n'):
+                        if line.startswith('import "'):
+                            headers.add(line)
+                        else:
+                            rule_lines.append(line)
+                    output_rule_set_strings[r] = "\n".join(rule_lines)
+                
+                # collect all the imports used by the rules at the top of the file
+                if len(imports) > 0:
+                    imports = '\n' + '\n'.join(imports) + '\n\n' 
+                    output_rule_set_strings.insert(0, imports)
+
                 # Prepend the header to the output rule set strings
                 output_rule_set_strings.insert(0, rule_set_header)
 
